@@ -19,6 +19,7 @@ const academy_coachModel = require('../Models/academy_coachModel');
 const recommendationModel = require("../Models/recommendationModel");
 const scoreAndremarkModel = require("../Models/scoreAndremarkModel");
 const feedBackModel = require('../Models/feedBackModel');
+const uploadDeviceModel = require('../Models/uploadDevice');
 
 //==========================[user register]==============================
 const createUser = async function (req, res) {
@@ -61,123 +62,104 @@ const createUser = async function (req, res) {
     }
 };
 //====================[Create Feedback]==========================
+
 const createFeedback = async function (req, res) {
     try {
-        var data = req.body;
-        // var drill_id = req.body.drill_id;
-        let userId = req.params.userId;
+        let userid = req.params.userId;
+        let dataArr = req.body;
+        let messaging = admin.messaging();
 
-        let { drill_id, video_id, timePosition, type, message, duration, file } = data;
+        let feedbackArr = [];
 
-        let feedback = [];
+        for (let i = 0; i < dataArr.length; i++) {
+            let { drill_id, video_id, userId, timePosition, type, message, duration, file } = dataArr[i];
 
-        data.userId = userId;
+            dataArr[i].userId = userid;
 
-        let feedbackCreated;
-        if (Array.isArray(data)) {
-            for (let i = 0; i < data.length; i++) {
-                feedbackCreated = await feedBackModel.create(data[i]);
+            let feedback = await feedBackModel.create(dataArr[i]);
+            feedbackArr.push(feedback);
 
-                let obj = {}
-                obj["_id"] = feedbackCreated._id
-                obj["drill_id"] = feedbackCreated.drill_id
-                obj["video_id"] = feedbackCreated.video_id
-                obj["userId"] = data.userId
-                obj["timePosition"] = feedbackCreated.timePosition
-                obj["type"] = feedbackCreated.type
-                obj["message"] = feedbackCreated.message
-                obj["duration"] = feedbackCreated.duration
-                obj["file"] = feedbackCreated.file
+            if (dataArr[i].video_id) {
+                var video = await uploadDeviceModel.findById({ _id: dataArr[i].video_id });
 
-                feedback.push(obj);
+                let message = {
+                    data: {
+                        userId: video.userId,
+                        topic: "Player",
+                        event: "FEEDBACK_CREATED",
+                        title: "New Feedback Created.",
+                        body: video.title,
+                        data: JSON.stringify({
+                            userId: video.userId,
+                            topic: "Player",
+                            event: "FEEDBACK_CREATED",
+                            title: "New Feedback Created.",
+                            body: video.title,
+                            Videos: JSON.stringify(video)
+                        })
+                    }
+                };
+
+                messaging.sendToTopic("Player", message)
+                    .then((response) => {
+                        if (i === dataArr.length - 1) {
+                            return res.status(201).send({
+                                status: true,
+                                message: 'Notification sent successfully!',
+                                data: feedbackArr
+                            });
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error sending notification:", error);
+                        return res.status(500).send({ status: false, message: "Error sending notification." });
+                    });
             }
-        } else {
-            feedbackCreated = await feedBackModel.create(data);
+            if (dataArr[i].drill_id) {
+                var drill = await myDrillModel.findById({ _id: dataArr[i].drill_id });
 
-            let obj = {}
-            obj["_id"] = feedbackCreated._id
-            obj["userId"] = data.userId
-            obj["video_id"] = data.video_id
-            obj["timePosition"] = feedbackCreated.timePosition
-            obj["type"] = feedbackCreated.type
-            obj["message"] = feedbackCreated.message
-            obj["duration"] = feedbackCreated.duration
-            obj["file"] = feedbackCreated.file
+                let message = {
+                    data: {
+                        userId: drill.userId,
+                        topic: "Player",
+                        event: "FEEDBACK_CREATED",
+                        title: "New Feedback Created.",
+                        body: drill.title,
+                        data: JSON.stringify({
+                            userId: drill.userId,
+                            topic: "Player",
+                            event: "FEEDBACK_CREATED",
+                            title: "New Feedback Created.",
+                            body: drill.title,
+                            Videos: JSON.stringify(drill)
+                        })
+                    }
+                };
+                console.log(message, "sss")
 
+                messaging.sendToTopic("Player", message)
+                    .then((response) => {
+                        if (i === dataArr.length - 1) {
+                            return res.status(201).send({
+                                status: true,
+                                message: 'Notification sent successfully!',
+                                data: feedbackArr
+                            });
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error sending notification:", error);
+                        return res.status(500).send({ status: false, message: "Error sending notification." });
+                    });
+            }
         }
-
-        return res.status(201).send({
-            status: true,
-            message: 'Success',
-            data: {
-                // drill_id: feedback[0].drill_id,
-                feedback
-            }
-        })
 
     } catch (error) {
         return res.status(500).send({
             status: false,
-            msg: error.message
-        })
+            message: error.message
+        });
     }
-    // try {
-    //     var data = req.body;
-    //     // var drill_id = req.body.drill_id;
-    //     let userId = req.params.userId;
-
-    //     let { drill_id, timePosition, type, message, duration, file } = data;
-
-    //     let feedback = [];
-
-    //     data.userId = userId;
-
-    //     let feedbackCreated;
-    //     if (Array.isArray(data)) {
-    //         for (let i = 0; i < data.length; i++) {
-    //             feedbackCreated = await feedBackModel.create(data[i]);
-
-    //             let obj = {}
-    //             obj["_id"] = feedbackCreated._id
-    //             obj["drill_id"] = feedbackCreated.drill_id
-    //             obj["userId"] = data.userId
-    //             obj["timePosition"] = feedbackCreated.timePosition
-    //             obj["type"] = feedbackCreated.type
-    //             obj["message"] = feedbackCreated.message
-    //             obj["duration"] = feedbackCreated.duration
-    //             obj["file"] = feedbackCreated.file
-
-    //             feedback.push(obj);
-    //         }
-    //     } else {
-    //         feedbackCreated = await feedBackModel.create(data);
-
-    //         let obj = {}
-    //         obj["_id"] = feedbackCreated._id
-    //         obj["userId"] = data.userId
-    //         obj["timePosition"] = feedbackCreated.timePosition
-    //         obj["type"] = feedbackCreated.type
-    //         obj["message"] = feedbackCreated.message
-    //         obj["duration"] = feedbackCreated.duration
-    //         obj["file"] = feedbackCreated.file
-
-    //     }
-
-    //     return res.status(201).send({
-    //         status: true,
-    //         message: 'Success',
-    //         data: {
-    //             drill_id: feedback[0].drill_id,
-    //             feedback
-    //         }
-    //     })
-
-    // } catch (error) {
-    //     return res.status(500).send({
-    //         status: false,
-    //         msg: error.message
-    //     })
-    // }
 };
 
 //==========================[user login]==============================
@@ -633,7 +615,6 @@ const getTags = async function (req, res) {
 //         let { drills, date, time, category, drill_id, repetation, sets, comment, userId, routineId, isCompleted, end_date } = data;
 //         data.userId = userid;
 
-
 //         let messaging = admin.messaging();
 
 //         let allRoutines = await routineModel.find({ userId: userid }).lean();
@@ -757,7 +738,7 @@ const createRoutine = async function (req, res) {
 
         for (let i = 0; i < allRoutines.length; i++) {
             if (data.date == allRoutines[i].date && data.time == allRoutines[i].time) {
-                return res.status(400).send({ status: false, message: "you already have a routine set for this time" });
+                return res.status(400).send({ status: false, message: "You already have a routine set for this time" });
             }
         }
 
@@ -778,7 +759,7 @@ const createRoutine = async function (req, res) {
                     event: "ROUTINE_CREATED",
                     title: "New Routine Created.",
                     body: CreateRoutine.drills,
-                    routine: CreateRoutine
+                    routine: JSON.stringify(CreateRoutine)
                 })
             }
         };
@@ -805,14 +786,12 @@ const createRoutine = async function (req, res) {
             });
 
     } catch (error) {
-                return res.status(500).send({
-                    status: false,
-                    message: error.message
-                })
-            }
+        return res.status(500).send({
+            status: false,
+            message: error.message
+        })
+    }
 };
-
-
 
 //=======================[Get Routine Count]=======================
 const getRoutineCount = async function (req, res) {
@@ -983,6 +962,161 @@ const getRoutineCount = async function (req, res) {
         return res.status(500).send({
             status: false,
             message: error.message
+        })
+    }
+};
+
+
+//==========================[Calendar Counts ]===========================
+const getCalendarCount = async function (req, res) {
+    try {
+        // let start_date = req.query.date;
+        // let end_date = req.query.end_date;
+        // let userid = req.params.userId;
+
+        // let routines = await routineModel.find({
+        //     userId: userid,
+        //     date: { $gte: start_date, $lte: end_date }
+        // }).sort({ date: 1 });
+
+        // let dates = {};
+        // routines.forEach((routine) => {
+        //     let date = routine.date;
+        //     if (dates[date]) {
+        //         dates[date].categories.push(routine.category);
+        //     } else {
+        //         dates[date] = {
+        //             date: date,
+        //             categories: [routine.category],
+        //         };
+        //     }
+        // });
+
+        // let result = [];
+        // for (let date in dates) {
+        //     result.push(dates[date]);
+        // }
+
+        // return res.status(200).send({
+        //     status: true,
+        //     data: result,
+        // });
+
+
+        // let start_date = req.query.date;
+        // let end_date = req.query.end_date;
+        // var userId = req.params.userId;
+
+        // let startDateObj = new Date(start_date.split("-").reverse().join("-"));
+        // let endDateObj = new Date(end_date.split("-").reverse().join("-"));
+
+        // var dateRange = [];
+        // for (let date = startDateObj; date <= endDateObj; date.setDate(date.getDate() + 1)) {
+        //     let formattedDate = date.toLocaleDateString("en-GB").split('/').join('-');
+        //     dateRange.push(formattedDate);
+        // }
+
+        // let routines = await routineModel.find({ userId: userId });
+
+        // let result = [];
+        // dateRange.forEach((date) => {
+        //     let dateObj = { date: date, categories: [] };
+        //     routines.forEach((routine) => {
+        //         let date = routine.date;
+        //         let User = routine.userId
+        //         if (date && User) {
+        //             dateObj.categories.push(routine.category);
+        //         } else {
+        //             date = {
+        //                 date: date,
+        //                 categories: [],
+        //             };
+        //         }
+        //     });
+        //     result.push(dateObj);
+        // });
+
+        // return res.status(200).send({
+        //     status: true,
+        //     data: result,
+        // });
+
+        let start_date = req.query.date;
+        let end_date = req.query.end_date;
+        var userId = req.params.userId;
+
+        let startDateObj = new Date(start_date.split("-").reverse().join("-"));
+        let endDateObj = new Date(end_date.split("-").reverse().join("-"));
+
+        var dateRange = [];
+        for (let date = startDateObj; date <= endDateObj; date.setDate(date.getDate() + 1)) {
+            let formattedDate = date.toLocaleDateString("en-GB").split('/').join('-');
+            dateRange.push(formattedDate);
+        }
+
+        let routines = await routineModel.find({ userId: userId, date: dateRange });
+
+        let result = [];
+        dateRange.forEach((date) => {
+            let dateObj = { date: date, categories: [] };
+            routines.forEach((routine) => {
+                if (routine.date == date) {
+                    dateObj.categories.push(routine.category);
+                }
+            });
+            result.push(dateObj);
+        });
+
+        return res.status(200).send({
+            status: true,
+            data: result,
+        });
+
+
+
+        // let start_date = req.query.date;
+        // let end_date = req.query.end_date;
+        // let userId = req.params.userId;
+
+        // let startDateObj = new Date(start_date.split("-").reverse().join("-"));
+        // let endDateObj = new Date(end_date.split("-").reverse().join("-"));
+
+        // let dateRange = [];
+        // for (let date = startDateObj; date <= endDateObj; date.setDate(date.getDate() + 1)) {
+        //     let formattedDate = date.toLocaleDateString("en-GB");
+        //     dateRange.push(formattedDate);
+        // }
+
+        // let routines = await routineModel.find({ userId: userId }).sort({ date: 1 });
+
+        // let result = [];
+        // dateRange.forEach((date) => {
+        //     let dateObj = { date: date, categories: [] };
+        //     routines.forEach((routine) => {
+        //         let date = routine.date;
+        //         let User = routine.userId
+        //         if (date && User) {
+        //             dateObj.categories.push(routine.category);
+        //         } else {
+        //             date = {
+        //                 date: date,
+        //                 categories: [],
+        //             };
+        //         }
+        //     });
+        //     result.push(dateObj);
+        // });
+
+        // return res.status(200).send({
+        //     status: true,
+        //     data: result,
+        // });
+
+    }
+    catch (error) {
+        return res.status(500).send({
+            status: false,
+            msg: error.message
         })
     }
 };
@@ -1589,160 +1723,6 @@ const getContactCoach = async function (req, res) {
     }
 };
 
-//==========================[Calendar Counts ]===========================
-const getCalendarCount = async function (req, res) {
-    try {
-        // let start_date = req.query.date;
-        // let end_date = req.query.end_date;
-        // let userid = req.params.userId;
-
-        // let routines = await routineModel.find({
-        //     userId: userid,
-        //     date: { $gte: start_date, $lte: end_date }
-        // }).sort({ date: 1 });
-
-        // let dates = {};
-        // routines.forEach((routine) => {
-        //     let date = routine.date;
-        //     if (dates[date]) {
-        //         dates[date].categories.push(routine.category);
-        //     } else {
-        //         dates[date] = {
-        //             date: date,
-        //             categories: [routine.category],
-        //         };
-        //     }
-        // });
-
-        // let result = [];
-        // for (let date in dates) {
-        //     result.push(dates[date]);
-        // }
-
-        // return res.status(200).send({
-        //     status: true,
-        //     data: result,
-        // });
-
-
-        // let start_date = req.query.date;
-        // let end_date = req.query.end_date;
-        // var userId = req.params.userId;
-
-        // let startDateObj = new Date(start_date.split("-").reverse().join("-"));
-        // let endDateObj = new Date(end_date.split("-").reverse().join("-"));
-
-        // var dateRange = [];
-        // for (let date = startDateObj; date <= endDateObj; date.setDate(date.getDate() + 1)) {
-        //     let formattedDate = date.toLocaleDateString("en-GB").split('/').join('-');
-        //     dateRange.push(formattedDate);
-        // }
-
-        // let routines = await routineModel.find({ userId: userId });
-
-        // let result = [];
-        // dateRange.forEach((date) => {
-        //     let dateObj = { date: date, categories: [] };
-        //     routines.forEach((routine) => {
-        //         let date = routine.date;
-        //         let User = routine.userId
-        //         if (date && User) {
-        //             dateObj.categories.push(routine.category);
-        //         } else {
-        //             date = {
-        //                 date: date,
-        //                 categories: [],
-        //             };
-        //         }
-        //     });
-        //     result.push(dateObj);
-        // });
-
-        // return res.status(200).send({
-        //     status: true,
-        //     data: result,
-        // });
-
-        let start_date = req.query.date;
-        let end_date = req.query.end_date;
-        var userId = req.params.userId;
-
-        let startDateObj = new Date(start_date.split("-").reverse().join("-"));
-        let endDateObj = new Date(end_date.split("-").reverse().join("-"));
-
-        var dateRange = [];
-        for (let date = startDateObj; date <= endDateObj; date.setDate(date.getDate() + 1)) {
-            let formattedDate = date.toLocaleDateString("en-GB").split('/').join('-');
-            dateRange.push(formattedDate);
-        }
-
-        let routines = await routineModel.find({ userId: userId, date: dateRange });
-
-        let result = [];
-        dateRange.forEach((date) => {
-            let dateObj = { date: date, categories: [] };
-            routines.forEach((routine) => {
-                if (routine.date == date) {
-                    dateObj.categories.push(routine.category);
-                }
-            });
-            result.push(dateObj);
-        });
-
-        return res.status(200).send({
-            status: true,
-            data: result,
-        });
-
-
-
-        // let start_date = req.query.date;
-        // let end_date = req.query.end_date;
-        // let userId = req.params.userId;
-
-        // let startDateObj = new Date(start_date.split("-").reverse().join("-"));
-        // let endDateObj = new Date(end_date.split("-").reverse().join("-"));
-
-        // let dateRange = [];
-        // for (let date = startDateObj; date <= endDateObj; date.setDate(date.getDate() + 1)) {
-        //     let formattedDate = date.toLocaleDateString("en-GB");
-        //     dateRange.push(formattedDate);
-        // }
-
-        // let routines = await routineModel.find({ userId: userId }).sort({ date: 1 });
-
-        // let result = [];
-        // dateRange.forEach((date) => {
-        //     let dateObj = { date: date, categories: [] };
-        //     routines.forEach((routine) => {
-        //         let date = routine.date;
-        //         let User = routine.userId
-        //         if (date && User) {
-        //             dateObj.categories.push(routine.category);
-        //         } else {
-        //             date = {
-        //                 date: date,
-        //                 categories: [],
-        //             };
-        //         }
-        //     });
-        //     result.push(dateObj);
-        // });
-
-        // return res.status(200).send({
-        //     status: true,
-        //     data: result,
-        // });
-
-    }
-    catch (error) {
-        return res.status(500).send({
-            status: false,
-            msg: error.message
-        })
-    }
-};
-
 //==========================[Update category for Routine]==============
 const updateCategoryRoutine = async function (req, res) {
     try {
@@ -1990,10 +1970,169 @@ const updateDate = async function (req, res) {
     }
 };
 
+//================================[Video Upload]==========================
+const videoUpload = async function (req, res) {
+    try {
+        let userid = req.params.userId;
+        let data = req.body;
+
+        let { video, thumbnail, videoLength, title, category, tag, userId } = data;
+
+        data.userId = userid;
+
+        let uploadDeviceCreated = await uploadDeviceModel.create(data);
+
+        return res.status(201).send({
+            status: true,
+            message: "Video Upload Successfully",
+            data: uploadDeviceCreated
+        })
+    }
+    catch (error) {
+        return res.status(500).send({
+            status: false,
+            message: error.message
+        });
+    }
+};
+
+//==========================[New My Drill]===========
+const myDrills = async function (req, res) {
+    try {
+        let userid = req.params.userId;
+        let data = req.body;
+
+        let { title, category, repetation, sets, video, videoLength, thumbnail, userId, isCompleted, routine_id } = data;
+
+        data.userId = userid;
+
+        let myDrillsCreated = await myDrillModel.create(data);
+
+        return res.status(201).send({
+            status: true,
+            message: "MyDrill Created Successfully",
+            data: myDrillsCreated
+        })
+    }
+    catch (error) {
+        return res.status(500).send({
+            status: false,
+            message: error.message
+        });
+    }
+};
+
+//======================[Upload User Profile]======================
+const userProfile = async function (req, res) {
+    try {
+        let userid = req.params.userId;
+        let data = req.body; 90
+
+        let { dob, gender, email, contact, height, weight, image, userId } = data;
+
+        data.userId = userid;
+
+        let userProfileCreated = await profileModel.create(data);
+
+        return res.status(201).send({
+            status: true,
+            message: "User Profile Created Successfully",
+            data: userProfileCreated
+        })
+    }
+    catch (error) {
+        return res.status(500).send({
+            status: false,
+            message: error.message
+        });
+    }
+};
+
+//==================[Upadte User Profile]==========================
+const updateUserProfile = async function (req, res) {
+    try {
+        let data = req.body;
+        let userid = req.params.userId;
+
+        let { dob, gender, email, contact, height, weight, image, userId } = data;
+
+        let user = await profileModel.findOneAndUpdate({ userId: userid }, {
+            $set: { image: data.image, dob: data.dob, gender: data.gender, email: data.email, contact: data.contact, height: data.height, weight: data.weight }
+        }, { new: true });
+
+        return res.status(200).send({
+            status: true,
+            message: "User Profile Updated Successfully",
+            data: user
+        })
+    }
+    catch (error) {
+        return res.status(500).send({
+            status: false,
+            message: error.message
+        });
+    }
+};
+
+//=================[Academy/Coach Profile]=========================
+const academy_coachProfile = async function (req, res) {
+    try {
+        let data = req.body;
+        let userid = req.params.userId;
+
+        let { userId, image, admin_name, email, contact, address } = data
+
+        data.userId = userid;
+
+        let user2 = await academy_coachModel.findById({ _id: userid });
+
+        if (user2.academy_name == null) {
+            let user = await academy_coachModel.findByIdAndUpdate({ _id: userid }, { academy_name: data.admin_name }, { new: true });
+        }
+
+        const academyCreated = await academyProfile.create(data)
+        return res.status(201).send({
+            data: academyCreated
+        })
+
+    }
+    catch (error) {
+        return res.status(500).send({
+            status: false,
+            message: error.message
+        });
+    }
+};
+//======================[Update Academy/Coach Profile]===============================
+const updateCoachProfile = async function (req, res) {
+    try {
+        let data = req.body;
+        let userid = req.params.userId;
+
+        let { image, admin_name, email, contact, address } = data;
+
+        let academy = await academyProfile.findOneAndUpdate({ userId: userid }, {
+            $set: { image: data.image, admin_name: data.admin_name, email: data.email, contact: data.contact, address: data.address }
+        }, { new: true });
+
+        return res.status(200).send({
+            status: true,
+            message: "Academy/Coach Profile Updated Successfully",
+            data: academy
+        })
+    }
+    catch (error) {
+        return res.status(500).send({
+            status: false,
+            message: error.message
+        });
+    }
+};
 
 
 
 
-module.exports = { updateDate, createFeedback, getPastDrill, getOngoingDrill, getNewDrill, createPlayerRoutine, scoreAndremark, updateCategoryRoutine, getCalendarCount, getRoutineCount, getOngoingRoutine, updateRoutine, getContactCoach, updateCoachPassword, getAllUsers, updateBat_Bow, getAssignedByDrills, AcademyLogin, createUser, userLogin, getContact, createBattings, updateBatting, createBowlings, updateBowling, createWickets, updateWicket, bow_bat, createRoutine, deleteRoutine, getRoutine, category, getCategory, getTags, tag, getNewRoutine, readinessSurvey, createPowerTest, createStrengthTest, createAcademy, updateDrill, updatePassword, getPastRoutine, getPersonal, getProgress, getUsers }
+
+module.exports = { updateCoachProfile, academy_coachProfile, updateUserProfile, userProfile, myDrills, videoUpload, updateDate, createFeedback, getPastDrill, getOngoingDrill, getNewDrill, createPlayerRoutine, scoreAndremark, updateCategoryRoutine, getCalendarCount, getRoutineCount, getOngoingRoutine, updateRoutine, getContactCoach, updateCoachPassword, getAllUsers, updateBat_Bow, getAssignedByDrills, AcademyLogin, createUser, userLogin, getContact, createBattings, updateBatting, createBowlings, updateBowling, createWickets, updateWicket, bow_bat, createRoutine, deleteRoutine, getRoutine, category, getCategory, getTags, tag, getNewRoutine, readinessSurvey, createPowerTest, createStrengthTest, createAcademy, updateDrill, updatePassword, getPastRoutine, getPersonal, getProgress, getUsers }
 
 

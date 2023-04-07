@@ -52,9 +52,14 @@ Router.get("/:userId/getNewDrill", commnMid.jwtValidation, commnMid.authorizatio
 Router.get("/:userId/getOngoingDrill", commnMid.jwtValidation, commnMid.authorization, battingController.getOngoingDrill);
 Router.get("/:userId/getPastDrill", commnMid.jwtValidation, commnMid.authorization, battingController.getPastDrill);
 Router.post("/:userId/feedback", commnMid.jwtValidation, commnMid.authorization, battingController.createFeedback);
-
 Router.put("/:userId/updateDates", commnMid.jwtValidation, commnMid.authorization, battingController.updateDate);
 
+Router.post("/:userId/videoUpload", commnMid.jwtValidation, commnMid.authorization, battingController.videoUpload);
+Router.post("/:userId/createMyDrills", commnMid.jwtValidation, commnMid.authorization, battingController.myDrills);
+Router.post("/:userId/createUserProfile", commnMid.jwtValidation, commnMid.authorization, battingController.userProfile);
+Router.put("/:userId/updateUserProfile", commnMid.jwtValidation, commnMid.authorization, battingController.updateUserProfile);
+Router.post("/:userId/academy_coachProfile", commnMid.jwtValidation, commnMid.authorization, battingController.academy_coachProfile);
+Router.put("/:userId/updateCoachProfile", commnMid.jwtValidation, commnMid.authorization, battingController.updateCoachProfile);
 
 //===================== checking your end point valid or not =======================//
 Router.all("/**", function (req, res) {
